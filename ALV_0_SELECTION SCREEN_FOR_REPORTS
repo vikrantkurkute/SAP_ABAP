@@ -1,0 +1,124 @@
+*&---------------------------------------------------------------------*
+*& Report ZSELECTION_SCREEN
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zselection_screen .
+load-OF-PROGRAM .
+"all types and declarations proccesed in that event
+*==================================================
+*=============================DECLERATION ( DATA / TYPE )================================================
+
+DATA : temp_matnr TYPE mara-matnr.                             "REPLACED BY TABLES LESS MEMORY USED IN PROGRAM .
+
+*============================ SELECTION SCREEN ===========================================================================
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE TEXT-001 .
+
+  SELECT-OPTIONS : s_matnr1 FOR temp_matnr MODIF ID DIS .
+  SELECT-OPTIONS : s_matnr2 FOR temp_matnr OBLIGATORY                          "MADETORY
+                                            DEFAULT '001'                      "DEFAULT
+                                            NO INTERVALS                       "NOT IN RANGE
+                                            NO-EXTENSION  .                    "NOT INCLUSIVE , EXCLUSIVE FUNCTIONS
+    PARAMETERS :
+             R1 RADIOBUTTON GROUP grp1 USER-COMMAND R_UCOMM ,                  "WE CAN Access by  ( if sy-ucomm EQ 'R_UCOMM' )
+             R2 RADIOBUTTON GROUP grp1 MODIF ID hid  .                         "WE CAN  CHECK screen-group1 EQ 'HID'
+  PARAMETERS : check AS CHECKBOX  DEFAULT abap_true .                          "CHCEK BOX
+  PARAMETERS : p_matnr TYPE MATNR.                                             " SINGLE INPUT .
+  PARAMETERS DROP_D TYPE MARA-MATNR AS LISTBOX VISIBLE LENGTH 18 .             " dropdown
+
+ SELECTION-SCREEN PUSHBUTTON 52(10) T  USER-COMMAND BUT1  .                    "push button 1 ( we can set its name dynamically in initiazation )
+ SELECTION-SCREEN PUSHBUTTON /52(10) text-002  USER-COMMAND BUT2  .            "push button 2 with name using text
+
+SELECTION-SCREEN END OF BLOCK b1 .
+
+
+
+*===============================================================================================
+
+INITIALIZATION .
+" WE USE THIS EVENT TO SET SELECTION SCREEN  VALUES DYNAMICALLY AT FIRST TIME .
+  T = 'BUTTON 1'  .                                                          "text for push button ( push button name )
+ IF R1 IS INITIAL AND R2 IS INITIAL .
+   R1 = ABAP_TRUE .
+      ENDIF .
+
+*=====================================================================
+AT SELECTION-SCREEN .   "IT TRIGERS AFTER PRESSING THE 'ENTER KEY'  ON SELECTION SCREEN
+  "THIS EVENTS NOT TRIGERES AT 1ST TIME WHILE PROGRAM EXCECUTING
+
+  AT SELECTION-SCREEN ON  check. "FILED
+  BREAK-POINT .
+
+  " VALIDATION AFTER INPUT
+  IF R1 EQ ABAP_TRUE .
+  MESSAGE 'ERROR' TYPE 'I' .
+  ENDIF.
+
+*  ===========================================================
+AT SELECTION-SCREEN OUTPUT.
+  "THIS EVENT WE USE TO MODIFY SCREEN FIELD  ( WE CAN ACCESS THIS EVENT WITHOUT PRESSING ENTER KEY )
+
+**  *** Filling the list box   ( DROPDOWN )
+  BREAK-POINT.
+  DATA: vrm_id TYPE vrm_id,                      " DROPDOWN SCREEN FIELD NAME
+        vrm_values TYPE vrm_values,              "TABLE
+        vrm_value LIKE LINE OF vrm_values.       "WORK AREA
+
+  vrm_value-key = 'Y'.                       "ACTUAL VALUE
+  vrm_value-text = 'YES' . ""text-100.       "TEXT  FOR USER
+  APPEND vrm_value TO vrm_values.
+
+  vrm_value-key = 'N'.                       "ACTUAL VALUE
+  vrm_value-text = 'NO'."text-101.           "TEXT  FOR USER
+  APPEND vrm_value TO vrm_values.
+
+  vrm_id = 'DROP_D'.
+
+  CALL FUNCTION 'VRM_SET_VALUES'
+       EXPORTING
+            id              =  'DROP_D'   "vrm_id
+            values          = vrm_values
+       EXCEPTIONS
+            id_illegavrm_id = 1
+            OTHERS          = 2.
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+    WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+****   HIDE AND DISPLAY SCREEN FILEDS
+  LOOP AT SCREEN .
+    IF SCREEN-group1 EQ 'DIS'.
+*      SCREEN-active = 0.    "HIDE FIELD
+       SCREEN-input = 0.     "GRAYOUT FILED
+    MODIFY SCREEN .
+     ENDIF .
+    ENDLOOP .
+
+******===========================================================================
+***  this event we use for F4 HELP TO FILED
+at SELECTION-SCREEN ON VALUE-REQUEST FOR p_matnr .
+at SELECTION-SCREEN ON VALUE-REQUEST FOR S_matnr1-LOW.
+at SELECTION-SCREEN ON VALUE-REQUEST FOR S_matnr1-HIGH.
+  "FOR SELECT OPTIONS  WE CAN ALSO USE DOMAIN WITH VALUE RANGES ( SEARCH HELPS )
+
+*** =======================================================================
+START-OF-SELECTION .
+DATA(HELLO) = |HELLO|.
+write :/ HELLO.
+END-OF-SELECTION .
+
+
+AT LINE-SELECTION .
+  DATA : GV_FNAME(30) , GV_VALUE(30).
+  GET CURSOR FIELD gv_fname VALUE gv_value .
+  BREAK-POINT .
+********==============================================================================
+  at USER-COMMAND .
+CASE sy-ucomm .
+  BREAK-POINT.
+WHEN : '&EXIT'.
+
+
+    ENDCASE .
