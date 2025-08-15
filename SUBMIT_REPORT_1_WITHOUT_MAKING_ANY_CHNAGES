@@ -1,0 +1,59 @@
+REPORT ZGT_SUBMIT_WITHOUT_DISPLAY.
+
+DATA : GT_BOOKING TYPE TABLE OF ZCRM_BUCKETING ,  "Final internal table
+       GS_BOOKING TYPE  ZCRM_BUCKETING,
+       lv_VAR     TYPE CHAR10.
+
+ranges : LR_BKNUM FOR lv_VAR . "range or you can decare select-option
+
+START-OF-SELECTION .
+
+PERFORM GET_PROGRAM.
+
+FORM GET_PROGRAM .
+
+  FIELD-SYMBOLS : <INT_EXL> TYPE ANY TABLE .
+
+  CL_SALV_BS_RUNTIME_INFO=>SET(
+    EXPORTING
+      DISPLAY        = ABAP_FALSE
+      METADATA       = ABAP_FALSE
+      DATA           =  ABAP_TRUE
+  ).
+"ZCRM_BUCKETING  coustom program name 
+"S_BKNUM  is the select-option of prgram ZCRM_BUCKETING
+"we are passing the input to ZCRM_BUCKETING program from rnage which we declared LR_BKNUM
+
+  SUBMIT ZCRM_BUCKETING WITH S_BKNUM IN LR_BKNUM AND RETURN .
+
+  TRY .
+      CL_SALV_BS_RUNTIME_INFO=>GET_DATA_REF(
+        IMPORTING
+         R_DATA            = DATA(R_DATA)
+*        R_DATA_LINE       =
+*        R_DATA_DESCR      =                  " Runtime Type Services
+*        R_DATA_LINE_DESCR =                  " Runtime Type Services
+      ).
+      ASSIGN R_DATA->* TO <INT_EXL>.    "we will get the program output in <INT_EXL> 
+    CATCH CX_SALV_BS_SC_RUNTIME_INFO.
+      MESSAGE 'Unable to retrive data' TYPE 'E' .
+  ENDTRY .
+  CL_SALV_BS_RUNTIME_INFO=>SET(
+     EXPORTING
+       DISPLAY        = ABAP_TRUE
+       METADATA       = ABAP_FALSE
+       DATA           =  ABAP_TRUE
+   ).
+  IF <INT_EXL> IS ASSIGNED .
+
+*    GT_SALES = CONV #( <INT_EXL> ) .  "PASSSING THE DATA TO INTERNAL TABLE SO WE CAN USE it
+*
+    LOOP AT <INT_EXL>  ASSIGNING FIELD-SYMBOL(<LS_INT_EXL>).
+*      MOVE-CORRESPONDING <LS_INT_EXL> TO GS_BOOKING .
+*      APPEND Gs_BOOKING TO Gt_BOOKING.
+*      CLEAR:GS_BOOKING.
+    ENDLOOP.
+*  loop at <int_exl> into data(wa_exl) .
+  ENDIF .
+  BREAK-POINT.
+ENDFORM.
