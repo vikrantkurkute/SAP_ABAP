@@ -1,0 +1,117 @@
+REPORT ZVK_REST_API_CON.
+
+DATA : LV_URL TYPE STRING.
+
+LV_URL = 'http://jsonplaceholder.typicode.com/users' .
+
+"step 1 .==================================================== cretae object ==============
+
+CL_HTTP_CLIENT=>CREATE_BY_URL(
+  EXPORTING
+    URL                =   LV_URL  " URL
+*    PROXY_HOST         =     " Logical Destination (Specified in Function Call)
+*    PROXY_SERVICE      =     " Port Number
+*    SSL_ID             =     " SSL Identity
+*    SAP_USERNAME       =     " ABAP System, User Logon Name
+*    SAP_CLIENT         =     " R/3 System, Client Number from Logon
+  IMPORTING
+    CLIENT             =   data(lo_http)  " HTTP Client Abstraction
+  EXCEPTIONS
+    ARGUMENT_NOT_FOUND = 1
+    PLUGIN_NOT_ACTIVE  = 2
+    INTERNAL_ERROR     = 3
+    OTHERS             = 4
+).
+IF SY-SUBRC eq 0.
+**===============step2  set method of object ==============
+*        LO_HTTP->PROPERTYTYPE_LOGON_POPUP = LO_HTTP->CO_DISABLED.
+*        LO_HTTP->REQUEST->SET_METHOD( 'POST' ).
+
+**================step3  set headers fileds / content type cookie etc ====================================
+**LO_HTTP->REQUEST->SET_HEADER_FIELD(
+**  EXPORTING
+**    NAME  =     " Name of the header field
+**    VALUE =     " HTTP header field value
+**).
+**===========================step 4 pass body to =======================
+data: lv_json TYPE string.
+ data(lv_len) = strlen( lv_json ).
+
+     CALL METHOD lo_http->request->set_cdata
+       EXPORTING
+         data   = lv_json
+         offset = 0
+         length = lv_len.
+
+**=========================step 5=======set heder field if needed s=========
+* CALL METHOD lo_http->request->set_header_field
+*       EXPORTING
+*         name  = '~request_method'
+*         value = 'POST'.
+***==============================
+
+
+"step 6 .=============================send request http client
+
+
+lo_http->SEND(
+  EXPORTING
+    TIMEOUT                    = 15 "CO_TIMEOUT_DEFAULT    " Timeout of Answer Waiting Time
+  EXCEPTIONS
+    HTTP_COMMUNICATION_FAILURE = 1
+    HTTP_INVALID_STATE         = 2
+    HTTP_PROCESSING_FAILED     = 3
+    HTTP_INVALID_TIMEOUT       = 4
+    OTHERS                     = 5
+).
+IF SY-SUBRC <> 0.
+* MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*            WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+ENDIF.
+
+"step 7 .============= ask for responce  to http client
+
+LO_HTTP->RECEIVE(
+  EXCEPTIONS
+    HTTP_COMMUNICATION_FAILURE = 1
+    HTTP_INVALID_STATE         = 2
+    HTTP_PROCESSING_FAILED     = 3
+    OTHERS                     = 4
+).
+IF SY-SUBRC <> 0.
+* MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*            WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+ENDIF.
+
+*****step8===========get status code of response eg 200 ,201, 500 etc ========================================
+DATA lv_http_status TYPE i .
+ lv_http_status = lo_http->response->get_header_field('~statusCode') .
+
+DATA(lv_res) = LO_HTTP->RESPONSE->GET_CDATA( ).
+
+*** step 9 ========= json to abap structure
+
+**** /UI2/CL_JSON=>DESERIALIZE(
+****   EXPORTING
+****     JSON                  =   ld  " JSON string
+****     PRETTY_NAME           =   /UI2/CL_JSON=>PRETTY_MODE-CAMEL_CASE  " Pretty Print property names
+****   CHANGING
+****     DATA                  =     " Data to serialize
+***** ).
+*   CATCH CX_SY_MOVE_CAST_ERROR.    "
+
+******* step 10 ======use data  from lv_res as per logic ==========
+CL_ABAP_BROWSER=>SHOW_HTML(
+  EXPORTING
+    TITLE        =   'TEST_VK'  " Window Title
+
+    HTML_STRING  =  lv_res   " HTML String
+
+).
+
+BREAK-POINT.
+ENDIF.
+
+
+
+***=================================
