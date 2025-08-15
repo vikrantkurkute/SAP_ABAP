@@ -1,0 +1,177 @@
+*2*&---------------------------------------------------------------------*
+*& Report ZZVIK_ALV_FACTORY_4_EDITABLE
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zzvik_alv_factory_4_editable.
+
+TYPES : BEGIN OF ty,
+          check_box TYPE char1,
+          mandt     TYPE mandt,
+          matnr     TYPE matnr,
+          ernam     TYPE ernam,
+          cell_type TYPE salv_t_int4_column,
+        END OF ty.
+
+DATA:
+  gt_final TYPE TABLE OF  ty.
+*    ls_data TYPE mara.
+
+CLASS lcl_events DEFINITION.
+  PUBLIC SECTION.
+    METHODS :double_click FOR EVENT double_click OF cl_salv_events_table
+      IMPORTING row
+                column
+                sender.
+
+    METHODS : hotspot FOR EVENT  link_click OF cl_salv_events_table
+      IMPORTING column
+                row
+                sender.
+
+
+    METHODS : boutton_click FOR EVENT added_function OF cl_salv_events_table
+      IMPORTING e_salv_function
+                sender.
+
+
+*   METHODS : ON_F4 FOR  EVENT
+ENDCLASS.
+
+CLASS lcl_events IMPLEMENTATION.
+  METHOD double_click .
+    BREAK-POINT.
+    READ TABLE gt_final ASSIGNING FIELD-SYMBOL(<fs_final>) INDEX row.
+  ENDMETHOD.
+
+
+  METHOD  hotspot .
+    BREAK-POINT.
+    READ TABLE gt_final ASSIGNING FIELD-SYMBOL(<fs_final>) INDEX row.
+  ENDMETHOD.
+
+  METHOD : boutton_click.
+    "e_salv_function
+    DATA lo_grid TYPE REF TO cl_gui_alv_grid.
+    BREAK-POINT.
+    CALL FUNCTION 'GET_GLOBALS_FROM_SLVC_FULLSCR'
+      IMPORTING
+        e_grid = lo_grid.
+
+    lo_grid->get_selected_rows(
+      IMPORTING
+        et_index_rows = DATA(gt_selected_rows)
+    ).
+
+
+
+  ENDMETHOD.
+ENDCLASS.
+
+
+START-OF-SELECTION.
+
+
+
+  " Sample data (replace with your actual data)
+  SELECT * FROM mara UP TO 10 ROWS INTO  CORRESPONDING FIELDS OF TABLE  @gt_final.
+
+
+
+  TRY.
+      " Create CL_SALV_TABLE instance
+      cl_salv_table=>factory(
+        IMPORTING
+          r_salv_table = DATA(lo_alv)                         " Basis Class Simple ALV Tables
+        CHANGING
+          t_table      = gt_final
+      ).
+
+*DATA lo_salv_grid TYPE REF TO cl_salv_extendable_grid_api
+
+      lo_alv->extended_grid_api(
+        RECEIVING
+          o_extended_grid_api = DATA(lo_salv_grid)
+      ).
+*CATCH cx_salv_api_contract_violation. " API contract violated by caller.
+*
+      lo_salv_grid->editable_restricted(
+        RECEIVING
+          o_editable_restricted = DATA(lo_salv_editable)
+      ).
+*CATCH cx_salv_gui_om_not_editable. " Display switched from Input enabled to Read-only "( IMPORTING editable_restricted = lo_salv_editable ).
+*
+
+*      DATA:lt_f4      TYPE lvc_t_f4 WITH HEADER LINE,
+*
+*           lt_f4_data TYPE lvc_s_f4.
+*      CLEAR lt_f4_data. REFRESH lt_f4.
+*      lt_f4_data-fieldname = 'BATCH'.
+*      lt_f4_data-register = abap_true .
+*      lt_f4_data-chngeafter = abap_true.
+*      INSERT lt_f4_data INTO TABLE lt_f4.
+
+
+    DATA ls_f4_data2  TYPE IF_SALV_GUI_OM_EDIT_RESTRICTED=>ys_f4_help_attributes.
+        ls_f4_data2 = VALUE #( register = ABAP_TRUE
+                               data_changed_after_f4 = ABAP_TRUE ).
+
+
+      TRY.
+          lo_salv_editable->set_attributes_for_columnname(
+            EXPORTING
+              columnname              = 'MATNR'
+              all_cells_input_enabled = abap_true
+*             s_register_f4_help      = abap_true
+          ).
+
+          lo_salv_editable->set_attributes_for_columnname(
+            EXPORTING
+              columnname              = 'CHECK_BOX'
+              all_cells_input_enabled = abap_true
+              s_register_f4_help = ls_f4_data2  ).
+
+        CATCH cx_salv_not_found.
+
+      ENDTRY.
+
+
+      LOOP AT gt_final ASSIGNING FIELD-SYMBOL(<fs>).
+
+        IF sy-tabix EQ 1.
+          <fs>-check_box = 'A'.  "BUTTON NAME
+          <fs>-cell_type =
+          VALUE #( ( columnname = 'CHECK_BOX'
+                     value      = if_salv_c_cell_type=>button ) ).
+
+        ELSE.
+
+          <fs>-cell_type =
+      VALUE #( ( columnname = 'CHECK_BOX'
+                 value      = if_salv_c_cell_type=>checkbox ) ).
+        ENDIF.
+      ENDLOOP.
+
+
+      TRY.
+          lo_alv->get_columns( )->set_cell_type_column( 'CELL_TYPE' ).
+        CATCH cx_salv_data_error.
+      ENDTRY.
+
+
+
+      DATA(lo_events) = lo_alv->get_event( ).
+
+      DATA(lo_event_handler) = NEW lcl_events( ).
+
+      SET HANDLER lo_event_handler->double_click FOR lo_events.             "DOUBBLE CLICK AND HOTSPOT ARE DIFFRENT EVENTS IN CL_SALV_TABLE
+      SET HANDLER lo_event_handler->hotspot FOR lo_events.
+      SET HANDLER lo_event_handler->boutton_click FOR lo_events.            "ONLY WHEN WE HAVE CREATED NEW BOUTTON
+
+
+      " Display the ALV
+      lo_alv->display( ).
+
+    CATCH cx_salv_msg.
+
+  ENDTRY.

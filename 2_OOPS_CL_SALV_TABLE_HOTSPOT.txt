@@ -1,0 +1,169 @@
+*&---------------------------------------------------------------------*
+*& Report ZZVIK_ALV_FACTORY_2_EDIT_CLICK
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+*****************************Change Log*********************************
+*Description  : ALV REPORT Template for Factory method( HOTSSPOT  )
+*Trasport Req : S4HK903020
+*Created By   : Vikrant Kurkute
+*Created On   : 12 DEC 2024
+*-----------------------------------------------------------------------
+*Description  :
+*Trasport Req :
+*Change By    :
+*Change On    :
+************************************************************************
+
+REPORT zzvik_alv_factory_2_hotspot.
+TYPES : BEGIN OF ty_final,
+          cell_type TYPE salv_t_int4_column.
+          INCLUDE TYPE mara.
+TYPES : END OF ty_final.
+
+DATA : lv_matnr TYPE matnr.
+DATA : gt_final TYPE TABLE OF ty_final.
+
+CLASS lcl_events DEFINITION.
+  PUBLIC SECTION.
+    METHODS :double_click FOR EVENT double_click OF cl_salv_events_table
+      IMPORTING row
+                column
+                sender.
+
+    METHODS : hotspot FOR EVENT  link_click OF cl_salv_events_table
+      IMPORTING column
+                row
+                sender.
+
+
+    METHODS : boutton_click FOR EVENT added_function OF cl_salv_events_table
+      IMPORTING e_salv_function
+                sender.
+
+ENDCLASS.
+
+CLASS lcl_events IMPLEMENTATION.
+  METHOD double_click .
+    BREAK-POINT.
+    READ TABLE gt_final ASSIGNING FIELD-SYMBOL(<fs_final>) INDEX row.
+  ENDMETHOD.
+
+
+  METHOD  hotspot .
+    BREAK-POINT.
+    READ TABLE gt_final ASSIGNING FIELD-SYMBOL(<fs_final>) INDEX row.
+  ENDMETHOD.
+
+  METHOD : boutton_click.
+    "e_salv_function
+    DATA lo_grid TYPE REF TO cl_gui_alv_grid.
+    BREAK-POINT.
+    CALL FUNCTION 'GET_GLOBALS_FROM_SLVC_FULLSCR'
+      IMPORTING
+        e_grid = lo_grid.
+
+    lo_grid->get_selected_rows(
+      IMPORTING
+        et_index_rows = DATA(gt_selected_rows)
+    ).
+
+
+
+  ENDMETHOD.
+ENDCLASS.
+
+
+SELECT-OPTIONS : s_matnr FOR lv_matnr.
+
+START-OF-SELECTION .
+  "get Data
+  SELECT * FROM mara
+    WHERE matnr IN @s_matnr
+    ORDER BY PRIMARY KEY
+    INTO TABLE @DATA(gt_mara).
+
+  "Display
+  TRY.
+      cl_salv_table=>factory(
+        IMPORTING
+          r_salv_table = DATA(lo_alv)                         " Basis Class Simple ALV Tables
+        CHANGING
+          t_table      = gt_final
+      ).
+
+      lo_alv->get_functions( )->set_all( abap_true ).
+      lo_alv->get_selections( )->set_selection_mode( value = if_salv_c_selection_mode=>cell ).
+
+      DATA(lo_columns) = lo_alv->get_columns( ).
+*-------------------------------
+      "IF   o_column->SET_CELL_TYPE IS NOT AVAILABLE  IN SYSTEM .
+*      TRY.
+*          DATA(lo_column) = lo_columns->get_column( columnname = 'MATNR' ).
+**             lo_column->SET_CELL_TYPE( if_salv_c_cell_type=>hotspot ). " THIS ISN NOT Availeble in S4 HANA  SERVER
+*
+*        CATCH cx_salv_not_found.
+*      ENDTRY.
+*----------------------------
+      TRY.
+          lo_columns->set_cell_type_column( 'CELL_TYPE' ).
+        CATCH cx_salv_data_error.
+      ENDTRY.
+      "we have to declare the one table type-'salv_t_int4_column' field in final str
+      " and need to pass values as below .
+
+      gt_final = CORRESPONDING #( gt_mara ).
+
+      LOOP AT gt_final ASSIGNING FIELD-SYMBOL(<fs_final>).
+        <fs_final>-cell_type = VALUE #( ( columnname = 'MATNR'
+                                          value      = if_salv_c_cell_type=>hotspot ) ).
+      ENDLOOP.
+
+      IF   <fs_final> IS ASSIGNED.
+        UNASSIGN <fs_final>.
+      ENDIF.
+
+"--------------------------------------------------
+   "STATUS  SALV_STANDARD
+      "PROGRAM SALV_DEMO_TABLE_SELECTIONS
+"---------------------------------------------
+
+      SET PF-STATUS 'STANDARD'.
+
+      lo_alv->set_screen_status(
+        report        = sy-repid
+        pfstatus      = 'STANDARD'
+        set_functions = cl_salv_model_base=>c_functions_all
+      ).
+
+      DATA(lo_events) = lo_alv->get_event( ).
+
+      DATA(lo_event_handler) = NEW lcl_events( ).
+
+      SET HANDLER lo_event_handler->double_click FOR lo_events.             "DOUBBLE CLICK AND HOTSPOT ARE DIFFRENT EVENTS IN CL_SALV_TABLE
+      SET HANDLER lo_event_handler->hotspot FOR lo_events.
+      SET HANDLER lo_event_handler->boutton_click FOR lo_events.            "ONLY WHEN WE HAVE CREATED NEW BOUTTON
+
+*TRY .
+*lo_alv->get_aggregations( )->add_aggregation(  columnname = 'NETPR'       "this logic is to get total and subtotal 
+*                                               aggregation = if_salv_c_aggregation=>total ).
+*
+**LO_ALV->get_sorts( )->add_sort( columnname = 'EBELN' )->set_subtotal( ABAP_TRUE ).
+*
+* CATCH cx_salv_not_found cx_salv_data_error cx_salv_existing.
+*ENDTRY.
+
+*to get save layout buttons
+
+*-----------------------------------------------------
+   DATA: lv_key       TYPE salv_s_layout_key.
+      lv_key-report = sy-repid.
+      lo_alv->get_layout( )->set_key( lv_key ).
+      lo_alv->get_layout( )->set_save_restriction( cl_salv_layout=>restrict_none ).
+
+*--------------------------------------------------
+      lo_alv->display( ).
+
+    CATCH cx_salv_msg. " ALV: General Error Class with Message
+
+  ENDTRY.

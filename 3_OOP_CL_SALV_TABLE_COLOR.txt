@@ -1,0 +1,61 @@
+*&---------------------------------------------------------------------*
+*& Report ZZVIK_ALV_FACTORY_3_COLOR
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zzvik_alv_factory_3_color.
+
+TYPES : BEGIN OF ty_final.
+          INCLUDE STRUCTURE ekko.
+TYPES :   lt_color TYPE lvc_t_scol,                                    "STEP 1
+        END OF ty_final.
+
+DATA : gt_final TYPE TABLE OF ty_final.
+
+START-OF-SELECTION.
+
+  SELECT * FROM ekko
+    INTO TABLE @DATA(gt_ekko)
+  UP TO 10 ROWS.
+
+
+  gt_final[] = CORRESPONDING #( gt_ekko[] ).
+
+
+  LOOP AT gt_final ASSIGNING FIELD-SYMBOL(<fs_final>).                  "STEP 2
+    IF sy-tabix EQ 1.
+      <fs_final>-lt_color = VALUE #( ( color-col = 6 ) ).              "FOR FULL ROW
+    ELSE.
+      IF sy-tabix EQ 2.
+        <fs_final>-lt_color = VALUE #( ( color-col = 5                  "FOR SINGLE CELL
+                                         fname     = 'EBELN' ) ).
+      ELSE.
+        <fs_final>-lt_color = VALUE #( ( color-col = 3                  "FOR COL
+                                         fname     = 'EBELN' ) ).
+      ENDIF.
+
+    ENDIF.
+  ENDLOOP.
+
+
+  TRY.
+      cl_salv_table=>factory(
+        IMPORTING
+          r_salv_table = DATA(lo_alv)                         " Basis Class Simple ALV Tables
+        CHANGING
+          t_table      = gt_final[]
+      ).
+
+
+      lo_alv->get_functions( )->set_all( abap_true ).
+      lo_alv->get_selections( )->set_selection_mode( value = if_salv_c_selection_mode=>row_column ).
+
+      DATA(lo_columns) = lo_alv->get_columns( ).
+      lo_columns->set_optimize( abap_true ).   "all cell optimize
+
+      lo_columns->set_color_column( value = 'LT_COLOR' ).               "STEP 3
+
+      lo_alv->display( ).
+    CATCH cx_salv_msg.
+
+  ENDTRY.

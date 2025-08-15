@@ -1,0 +1,102 @@
+*&---------------------------------------------------------------------*
+*& Report ZZVIK_ALV_FACTORY
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zzvik_alv_factory.
+*****************************Change Log*********************************
+*Description  : ALV REPORT Template for Factory method
+*Trasport Req : S4HK903020
+*Created By   : Vikrant Kurkute
+*Created On   : 03/12/2024
+*-----------------------------------------------------------------------
+*Description  :
+*Trasport Req :
+*Change By    :
+*Change On    :
+************************************************************************
+
+DATA : lv_matnr TYPE matnr,
+       lo_alv   TYPE REF TO cl_salv_table.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME .
+  SELECT-OPTIONS : s_matnr FOR lv_matnr.
+SELECTION-SCREEN END OF BLOCK b1 .
+
+START-OF-SELECTION.
+
+  SELECT *                           " GET DATA
+   FROM mara
+   WHERE matnr IN @s_matnr
+   ORDER BY PRIMARY KEY
+   INTO TABLE @DATA(gt_mara).
+
+  " Step 2: Create ALV object using the factory method
+
+  TRY.
+      cl_salv_table=>factory(
+        IMPORTING
+          r_salv_table = lo_alv " ALV table reference
+        CHANGING
+          t_table      = gt_mara ). " Pass the internal table data
+
+
+*  get display object
+      DATA(lo_display) = lo_alv->get_display_settings( ).
+*   set ZEBRA pattern
+      lo_display->set_striped_pattern( 'X' ).
+*   Title to ALV
+      lo_display->set_list_header( 'ALV Test for Display Settings' ).
+
+*  "slection box
+      DATA(lo_selection) = lo_alv->get_selections( ).
+      lo_selection->set_selection_mode( value = if_salv_c_selection_mode=>cell ).
+
+
+      "column settings to the ALV and customize it
+      TRY.
+          DATA(lo_columns) = lo_alv->get_columns( ).
+          lo_columns->set_optimize( abap_true ).   "all cell optimize
+
+          DATA(lo_column) = lo_columns->get_column( 'MATNR' ).  " singel field settings
+          lo_column->set_short_text( 'GOODS' ).
+          lo_column->set_long_text( 'GOODS' ).
+          lo_column->set_medium_text( 'GOODS' ).
+
+*           LO_column->set_visible( '' ).  "TO HIDE column
+          lo_column->set_optimized( abap_true ).  "cel optimze
+          lo_column->set_output_length( 10 ).  "cel optimze
+
+        CATCH cx_salv_not_found .
+      ENDTRY.
+
+
+      "Start If you want to add coustom button
+
+      "STATUS  SALV_STANDARD
+      "PROGRAM SALV_DEMO_TABLE_SELECTIONS
+
+*SET PF-STATUS 'STANDARD'.   "SET PF-STATUS 'ZSTANDARD' excluding RT_EXTTAB. "RT_EXTTAB TYPE SLIS_T_EXTAB.
+*lo_alv->set_screen_status(
+*  report        = SY-repid
+*  pfstatus      = 'STANDARD'
+*  set_functions = cl_salv_model_base=>c_functions_ALL
+*).
+
+      "END If you want to add coustom button
+
+*      Enable functions
+      DATA(lo_functions) = lo_alv->get_functions( ).
+      lo_functions->set_all( abap_true ).
+      lo_functions->set_find( abap_true ).
+
+      lo_alv->display( ). " Display ALV on screen
+
+    CATCH cx_salv_msg INTO DATA(lx_salv).
+      " Error handling for ALV
+      WRITE: / 'Error:', lx_salv->get_text( ).
+  ENDTRY.
+
+*  ==========================
+
+
