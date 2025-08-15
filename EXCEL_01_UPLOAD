@@ -1,0 +1,44 @@
+REPORT ZCONVERT_XL_TO_INTERNAL_TABLE.
+
+TYPES : BEGIN OF ty  ,
+       name(30),
+       surname(30),
+       roll_no(10),
+    END OF ty   .
+
+DATA : it TYPE TABLE of ty .
+data : temp TYPE TRUXS_T_TEXT_DATA .
+
+PARAMETERS : lv_path TYPE IBIPPARMS-PATH.
+
+at SELECTION-SCREEN on VALUE-REQUEST FOR lv_path .
+
+  CALL FUNCTION 'F4_FILENAME'
+   EXPORTING
+     PROGRAM_NAME        = SYST-CPROG
+     DYNPRO_NUMBER       = SYST-DYNNR
+*     FIELD_NAME          = ' '
+   IMPORTING
+     FILE_NAME           = lv_path .
+
+START-OF-SELECTION .
+
+CALL FUNCTION 'TEXT_CONVERT_XLS_TO_SAP'
+  EXPORTING
+*   I_FIELD_SEPERATOR          =
+  I_LINE_HEADER              = 'X'
+   i_tab_raw_data             = temp
+    i_filename                 = lv_path
+  TABLES
+    i_tab_converted_data       = it
+ EXCEPTIONS
+   CONVERSION_FAILED          = 1
+   OTHERS                     = 2
+          .
+IF sy-subrc <> 0.
+* Implement suitable error handling here
+ENDIF.
+
+
+cl_demo_output=>display_data( it ) .
+BREAK-POINT .
