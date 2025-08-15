@@ -1,0 +1,243 @@
+*&---------------------------------------------------------------------*
+*& Report ZALV_DYNAMIC
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZALV_DYNAMIC.
+TABLES : ekko , ekpo .
+DATA : gt_ekko TYPE STANDARD TABLE OF ekko,
+       gs_ekko  TYPE ekko .
+
+data : gt_ekpo TYPE STANDARD TABLE OF ekpo ,
+       gs_ekpo TYPE ekpo .
+
+data : gv_ebelp TYPE ekpo-EBELP ,
+       gv_max_ebelp TYPE ekpo-EBELP .
+
+*===============================================================
+*===============================================================
+FIELD-SYMBOLS : <dyn_table> TYPE STANDARD TABLE ,
+                 <DYN_WA> ,
+                 <FS1> ,
+                 <FS2>.
+*====================================
+* FOR DYNAMIC INTERNAL TABLE
+*============================
+DATA : NEW_TABLE TYPE REF TO DATA ,
+       WA_TABLE TYPE REF TO DATA .
+
+DATA : FIELD_NAME(20) TYPE C ,
+       FIELD_VALUE(200) TYPE C .
+
+DATA : GT_FCAT TYPE LVC_T_FCAT ,
+        GS_fCAt TYPE lvc_s_fcat ,
+        gs_layout TYPE lvc_s_layo .
+
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME.
+  SELECT-OPTIONS : s_ebeln for ekko-EBELN ,
+                   s_aedat FOR ekko-AEDAT ,
+                   s_bsart for ekko-BSART.
+
+SELECTION-SCREEN END OF BLOCK b1 .
+
+
+START-OF-SELECTION .
+PERFORM GET_DATA .
+PERFORM BULID_DYNAMIC_TABLE.
+PERFORM MOVE_DATA_TO_IT .
+
+FORM GET_DATA .
+
+SELECT * FROM ekko Into  CORRESPONDING FIELDS OF TABLE GT_EKKO
+  UP TO 100 ROWS
+  WHERE EBELN in S_EBELN
+*  and BSTYP eq 'F'
+  AND AEDAT in S_AEDAT
+  AND bsart in  S_BSART .
+
+  IF GT_EKKO[] IS NOT INITIAL .
+    SELECT * FROM EKPO INTO CORRESPONDING FIELDS OF TABLE GT_EKPO
+      FOR ALL ENTRIES IN GT_EKKO
+      WHERE EBELN EQ GT_EKKO-EBELN .
+
+     SORT GT_EKPO DESCENDING BY EBELP.
+
+ CLEAR  : GS_EKPO  .
+      READ TABLE GT_EKPO INTO GS_EKPO INDEX 1 .
+
+      GV_MAX_EBELP = GS_EKPO-EBELP .
+
+      SORT GT_EKPO BY EBELN EBELP ASCENDING .
+
+    ENDIF .
+
+
+ENDFORM .
+*&---------------------------------------------------------------------*
+*& Form BULID_DYNAMIC_TABLE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM BULID_DYNAMIC_TABLE .
+
+  GS_FCAT-FIELDNAME = 'EBELN'.
+  GS_FCAT-COLTEXT = 'PO_NO.'.
+*  GS_FCAT-COL_POS = 1 .
+  GS_FCAT-NO_ZERO = 'X' .
+  APPEND GS_FCAT TO GT_FCAT .
+  CLEAR GS_FCAT .
+
+ GS_FCAT-FIELDNAME = 'AEDAT'.
+  GS_FCAT-COLTEXT = 'PO_Date.'.
+*  GS_FCAT-COL_POS = 2 .
+  APPEND GS_FCAT TO GT_FCAT .
+  CLEAR GS_FCAT .
+
+GV_EBELP = 10 .
+  SORT GT_EKPO BY EBELP ASCENDING .
+  DATA(GT_EKPO1) = GT_EKPO[] .
+  DELETE ADJACENT DUPLICATES FROM GT_EKPO1 COMPARING EBELP .
+
+*LOOP AT GT_EKPO1 INTO DATA.
+DO.
+*  READ TABLE GT_EKPO WITH KEY
+
+  CONCATENATE GV_EBELP 'MATNR' INTO GS_FCAT-FIELDNAME .
+  CONCATENATE GV_EBELP 'Material Code' INTO GS_FCAT-COLTEXT .
+  gs_fcat-DATATYPE = 'CHAR'.
+  gs_fcat-OUTPUTLEN = '18'.
+
+  APPEND GS_FCAT TO GT_FCAT .
+  CLEAR GS_FCAT .
+
+   CONCATENATE GV_EBELP 'TXZ01' INTO GS_FCAT-FIELDNAME .
+  GS_FCAT-COLTEXT = 'Material Description'.
+  gs_fcat-DATATYPE = 'CHAR'.
+  gs_fcat-OUTPUTLEN = '200'.
+  APPEND GS_FCAT TO GT_FCAT .
+  CLEAR GS_FCAT .
+
+   CONCATENATE GV_EBELP 'NETWR' INTO GS_FCAT-FIELDNAME .
+  GS_FCAT-COLTEXT = 'Amount'.
+  gs_fcat-DATATYPE = 'CURR'.
+  gs_fcat-OUTPUTLEN = '23'.
+  APPEND GS_FCAT TO GT_FCAT .
+  CLEAR GS_FCAT .
+
+  IF GV_EBELP = GV_MAX_EBELP .
+    EXIT .
+    ELSE .
+  GV_EBELP  =   GV_EBELP + 10 .
+  ENDIF .
+  ENDDO .
+
+
+  CALL METHOD CL_ALV_TABLE_CREATE=>CREATE_DYNAMIC_TABLE
+    EXPORTING
+*      I_STYLE_TABLE             = I_STYLE_TABLE    " Add Style Table
+      IT_FIELDCATALOG           = GT_FCAT  " Field Catalog
+*      I_LENGTH_IN_BYTE          = I_LENGTH_IN_BYTE " Boolean Variable (X=True, Space=False)
+    IMPORTING
+       EP_TABLE                  = NEW_TABLE         " Pointer to Dynamic Data Table
+*      E_STYLE_FNAME             = E_STYLE_FNAME    " ALV Control: Field Name of Internal Table Field
+    EXCEPTIONS
+      GENERATE_SUBPOOL_DIR_FULL = 1                " At Most 36 Subroutine Pools Can Be Generated Temporarily
+      OTHERS                    = 2
+    .
+
+  IF SY-SUBRC <> 0.
+*   MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*     WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+  ENDIF.
+
+ASSIGN NEW_TABLE->* TO <DYN_TABLE> .     "ASSIGNING ALL PROPRTIES OF NEW TABLE TO FILED SYMBOL  TABLE
+
+CREATE DATA WA_TABLE LIKE LINE OF <DYN_TABLE> .
+ASSIGN WA_TABLE->* TO <DYN_WA> .
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form MOVE_DATA_TO_IT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM MOVE_DATA_TO_IT .
+
+
+DATA : LV_INDEX TYPE SY-TABIX .
+SORT GT_EKKO BY EBELN.
+SORT GT_EKPO BY EBELN EBELP .
+
+
+CLEAR : GS_EKKO .
+LOOP AT GT_EKKO INTO GS_EKKO.
+
+
+CLEAR : FIELD_VALUE , FIELD_NAME .
+FIELD_NAME = 'EBELN' .
+FIELD_VALUE = GS_EKKO-EBELN .
+CONDENSE FIELD_VALUE.
+ASSIGN COMPONENT FIELD_NAME OF STRUCTURE <dyn_wa> TO <FS1> .
+<FS1> = FIELD_VALUE .
+
+
+
+CLEAR : FIELD_VALUE , FIELD_NAME .
+FIELD_NAME = 'AEDAT' .
+FIELD_VALUE = GS_EKKO-AEDAT .
+CONDENSE FIELD_VALUE.
+ASSIGN COMPONENT FIELD_NAME OF STRUCTURE <dyn_wa> TO <FS1> .
+<FS1> = FIELD_VALUE .
+
+
+
+*CLEAR :GS_EKPO.                                                           "LOOP IN LOOP PARALLEL COURSEER
+*READ TABLE GT_EKPO INTO GS_EKPO WITH KEY EBELN = GS_EKKO-EBELN BINARY SEARCH  .
+*IF SY-SUBRC EQ 0 .
+*LV_INDEX = SY-TABIX .
+  CLEAR : GS_EKPO .
+  LOOP AT GT_EKPO INTO GS_EKPO WHERE EBELN EQ GS_EKKO-EBELN .    "FROM LV_INDEX .
+*IF GS_EKPO-EBELN NE GS_EKKO-EBELN .
+*
+*  EXIT .
+*  ENDIF .
+
+CLEAR : FIELD_VALUE , FIELD_NAME .
+CONCATENATE GS_EKPO-EBELP 'MATNR' INTO FIELD_NAME .
+FIELD_VALUE = GS_EKPO-MATNR.
+CONDENSE FIELD_VALUE.
+ASSIGN COMPONENT FIELD_NAME OF STRUCTURE <dyn_wa> TO <FS1> .
+<FS1> = FIELD_VALUE .
+
+CLEAR : FIELD_VALUE , FIELD_NAME .
+CONCATENATE GS_EKPO-EBELP 'TXZ01' INTO FIELD_NAME .
+FIELD_VALUE = GS_EKPO-TXZ01.
+CONDENSE FIELD_VALUE.
+ASSIGN COMPONENT FIELD_NAME OF STRUCTURE <dyn_wa> TO <FS2> .
+<FS2> = FIELD_VALUE .
+
+CLEAR : FIELD_VALUE , FIELD_NAME .
+CONCATENATE GS_EKPO-EBELP 'NETWR' INTO FIELD_NAME .
+FIELD_VALUE = GS_EKPO-NETWR.
+CONDENSE FIELD_VALUE.
+
+ASSIGN COMPONENT FIELD_NAME OF STRUCTURE <dyn_wa> TO <FS1> .
+<FS1> = FIELD_VALUE .
+
+CLEAR : GS_EKPO .
+    ENDLOOP .
+*ENDIF.
+APPEND : <DYN_WA>  TO <DYN_TABLE> .
+CLEAR : GS_EKKO , LV_INDEX .
+ENDLOOP .
+
+BREAK-POINT .
+ENDFORM.
