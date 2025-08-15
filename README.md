@@ -14,6 +14,7 @@ It demonstrates my ability to build scalable, performance-optimized, and standar
 - **ODATA**
 - **API consumption**
 - **Send EMIAL from SAP**
+- **EXCEL Upload**
 
 ## 🛠️ Technologies & Tools Used
 - **SAP ECC / S/4HANA**
