@@ -12,6 +12,9 @@ It demonstrates my ability to build scalable, performance-optimized, and standar
 - **Classical Reports**
 - **ALV Reports (ABAP List Viewer)**
 - **Object-Oriented ABAP (OOABAP)**
+- **ODATA**
+- **API consumption**
+- **Send EMIAL from SAP**
 
 ## 🛠️ Technologies & Tools Used
 - **SAP ECC / S/4HANA**
