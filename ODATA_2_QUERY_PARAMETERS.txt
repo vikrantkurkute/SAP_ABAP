@@ -1,0 +1,102 @@
+1 ) $format=json ( No need to extend code ) 
+eg .
+ http://##/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet?$format=json 
+
+================================================
+2) $count ( No need to extend code ) 
+ http://##/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet/$count
+======================================================
+
+3)$select ( No need to extend code ) 
+ http://##/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet?$select=EMP_NAME&$format=json
+http://##/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet?$select=EMP_NAME,EMP_ID&$format=json
+===================================================================
+4)$filter    ( NEED TO IMPLIMENT ) 
+
+WE CAN DO IT BY USING 2 METHODS . 
+-METHOD 1 START------------------EASY METHOD--------------------------------
+  select * FROM zemp INto TABLE @DATA(GT_FINAL). 
+
+  ET_ENTITYSET = CORRESPONDING #( GT_FINAL ).
+
+  CALL METHOD /IWBEP/CL_MGW_DATA_UTIL=>FILTERING
+    EXPORTING
+      IT_SELECT_OPTIONS = IT_FILTER_SELECT_OPTIONS    " table of select options
+    CHANGING
+      CT_DATA           = ET_ENTITYSET
+    .
+---METHOD 1 END -------------------------------------------------------
+
+-METHOD 2 START---------------------------------------
+CODE : 
+DATA(gs_FILTER_FILED) = VALUE /IWBEP/T_COD_SELECT_OPTIONS( IT_FILTER_SELECT_OPTIONS[ PROPERTY = 'EMP_ID' ]-SELECT_OPTIONS OPTIONAL  ).
+
+DATA(r_emp_id) = VALUE RSDSSELOPT_T( FOR wa in  gs_FILTER_FILED
+                                       ( SIGN = wa-sign
+                                         OPTION = wa-option
+                                         LOW = WA-low
+                                         HIGH = wa-high ) ).
+
+select * FROM zemp INto TABLE @DATA(GT_FINAL) WHERE EMP_ID in @r_emp_id.
+
+  ET_ENTITYSET = CORRESPONDING #( GT_FINAL ).
+
+---METHOD 2 END -------------------------------------------------------
+
+http://##/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet?$filter=EMP_ID eq 'KR01'&$format=json
+
+Multiple values for single parameters 
+http://##/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet?$filter=( EMP_ID eq 'KR01' or EMP_ID eq 'KR02')&$format=json
+============================================================
+
+5) $inlinecount   ( NEED TO IMPLIMENTION ) 
+
+URL : http://##/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet?$inlinecount=allpages
+
+WRITE CODE IN GET_ENTITY_SET  ( METHOD )
+
+select * FROM zemp INto TABLE @DATA(GT_FINAL) .
+
+  ET_ENTITYSET = CORRESPONDING #( GT_FINAL ).
+
+**----------------------START code for inlinecount-------------
+
+ if IO_TECH_REQUEST_CONTEXT->HAS_INLINECOUNT( ) = ABAP_TRUE.
+   ES_RESPONSE_CONTEXT-INLINECOUNT = lines( ET_ENTITYSET ).
+   ELSE.
+   CLear ES_RESPONSE_CONTEXT-INLINECOUNT.
+   ENDIF.
+
+**-------------end code for inlinecount -----------
+
+========================================================================
+
+6) $orderby ( NEED TO IMPLIMENTION ) 
+
+$orderby=EMP_SAL asc  ( for accending = asc ). 
+$orderby=EMP_SAL desc ( for accending = desc ). 
+
+URL : http://##/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet?$orderby=EMP_SAL asc
+
+URL : http://##/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet?$orderby=EMP_SAL desc
+
+URL : http://##/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet?$orderby=EMP_SAL desc , EMP_ID desc
+
+  select * FROM zemp INto TABLE @DATA(GT_FINAL). 
+
+  ET_ENTITYSET = CORRESPONDING #( GT_FINAL ).
+
+  CALL METHOD /IWBEP/CL_MGW_DATA_UTIL=>ORDERBY
+    EXPORTING
+      IT_ORDER = IT_ORDER   " table of select options
+    CHANGING
+      CT_DATA           = ET_ENTITYSET
+    .
+
+========================================================================
+
+
+
+
+
+

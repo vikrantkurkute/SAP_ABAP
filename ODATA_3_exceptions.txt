@@ -1,0 +1,74 @@
+  method EN_EMPSET_GET_ENTITY.
+
+ read TABLE it_key_tab INTO data(lv_rec) WITH  KEY NAME = 'EMP_ID'.
+
+ IF LV_REC IS NOT INITIAL.
+
+   SELECT SINGLE * FROM ZEMP WHERE EMP_ID EQ @LV_REC-VALUE INTO @DATA(GT_EMP).
+
+     MOVE-CORRESPONDING GT_EMP TO ER_ENTITY .
+
+if GT_EMP-EMP_ID is INITIAL .
+
+================start=======exception handling msg code ===============================
+data : lo_exception_container TYPE  REF TO /IWBEP/IF_MESSAGE_CONTAINER.
+data : msg_txt TYPE bapi_msg VALUE 'Record Not Found'.
+
+lo_exception_container = MO_CONTEXT->GET_MESSAGE_CONTAINER( ).
+
+lo_exception_container->ADD_MESSAGE_TEXT_ONLY(
+  EXPORTING
+    IV_MSG_TYPE               = 'E'    " Message Type - defined by GCS_MESSAGE_TYPE
+    IV_MSG_TEXT               =  msg_txt   " Message Text
+*    IV_ERROR_CATEGORY         =     " Error category - defined by GCS_ERROR_CATEGORY
+*    IV_IS_LEADING_MESSAGE     = ABAP_TRUE    " Flags this message as the leading error message
+*    IV_ENTITY_TYPE            =     " Entity type/name
+*    IT_KEY_TAB                =     " Entity key as name-value pair
+*    IV_ADD_TO_RESPONSE_HEADER = ABAP_FALSE    " Flag for adding or not the message to the response header
+*    IV_MESSAGE_TARGET         =     " Target (reference) (e.g. Property ID) of a message
+).
+
+
+
+RAISE EXCEPTION TYPE /IWBEP/CX_MGW_BUSI_EXCEPTION
+  EXPORTING
+*    TEXTID                 =
+*    PREVIOUS               =
+    MESSAGE_CONTAINER      =  lo_exception_container
+*    HTTP_STATUS_CODE       = GCS_HTTP_STATUS_CODES-BAD_REQUEST
+*    HTTP_HEADER_PARAMETERS =
+*    SAP_NOTE_ID            =
+*    ENTITY_TYPE            =
+*    MESSAGE                =
+*    MESSAGE_UNLIMITED      =
+*    FILTER_PARAM           =
+*    OPERATION_NO           =
+.
+
+================end=======exception handling msg code ===============================
+
+
+  ENDIF.  "if GT_EMP-EMP_ID is INITIAL .
+
+   ENDIF. " IF LV_REC IS NOT INITIAL.
+
+
+
+**TRY.
+*CALL METHOD SUPER->EN_EMPSET_GET_ENTITY
+*  EXPORTING
+*    IV_ENTITY_NAME          =
+*    IV_ENTITY_SET_NAME      =
+*    IV_SOURCE_NAME          =
+*    IT_KEY_TAB              =
+**    IO_REQUEST_OBJECT       =
+**    IO_TECH_REQUEST_CONTEXT =
+*    IT_NAVIGATION_PATH      =
+**  IMPORTING
+**    ER_ENTITY               =
+**    ES_RESPONSE_CONTEXT     =
+*    .
+** CATCH /IWBEP/CX_MGW_BUSI_EXCEPTION .
+** CATCH /IWBEP/CX_MGW_TECH_EXCEPTION .
+**ENDTRY.
+  endmethod.

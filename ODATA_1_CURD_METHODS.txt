@@ -1,0 +1,89 @@
+ODATA : 
+
+TCODE : 
+STEP1 :
+  SEGW =>CREATE_PROJECT=>CRETAE_ENTITY & ENTITY_SET(BY Importing DDIC)
+     
+here i have created one custom ZEMP(employees master) table you can create your own as per requirement
+
+STEP: 2
+  => CRETAE RUNTIME ARTIFACTS 
+( IF YOU MAKE ANY CHANGES IN DATA MODELS THE YOU HAVE TO RECREATE RUNTIME ARTIFACTS)
+ 
+you will get servise name while creating run time artifcats 
+
+STEP 3 : 
+
+Register &  maintain servise 
+T-CODE - /IWFND/MAINT_SERVICE 
+( by write clking on 4th folder of project ) 
+
+
+STEP 4 : 
+ IMPLIMENT service
+
+Runtime artifacts=>dpc_ext=>
+
+
+STEP 5 GET_ENTITY METHOD  
+
+URL : http://########/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet('KR02')?$format=json
+
+IT_KEY_TAB   READ WITH NAME = 'EMP_ID' OR  'VBELN' 
+
+SELECT RECORD BY USING IT_KEY_TAB-VALUE 
+
+PASS TO ER_ENTITY .
+
+
+=======================================
+STEP 6 : POST 
+
+DONT PASS KEY FILED IN URL : http://#####/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet
+
+READ DATA FROM IO_PROVIDER 
+ DATA wa_entity LIKE  ER_ENTITY .
+ TRY.
+
+ IO_DATA_PROVIDER->READ_ENTRY_DATA(
+   IMPORTING
+     ES_DATA                      = WA_ENTITY
+ ).
+
+  DATA LS_MODIFY TYPE ZEMP .
+   LS_MODIFY =  CORRESPONDING #( WA_ENTITY ) .
+
+   MODIFY ZEMP FROM LS_MODIFY.
+
+ER_ENTITY = CORRESPONDING #( LS_MODIFY ).
+
+   CATCH /IWBEP/CX_MGW_TECH_EXCEPTION.    "
+ENDTRY.
+
+
+====================
+STEP 7 : GET_ENTITY_SET ( BLUCK DATA )  
+URL : http://######/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet?$format=json
+
+SELECT * FROM ZEMP INTO TABALE ET_ENTITYSET 
+
+==========================
+STEP 8 : PUT ( UPDATE RECORD )
+
+URL : http://#######/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet('KR03')
+
+
+CODE SAME AS CREATE ( POST ) 
+ 
+=================================================
+step 9  : delete 
+URL : http://######/sap/opu/odata/sap/ZEMP_DEMO_SRV/EN_EMPSet('KR03')
+
+
+status code : 204 success
+
+    DATA(WA_VALUE) = VALUE #( IT_KEY_TAB[ NAME = 'EMP_ID' ] OPTIONAL  ) .
+
+    DELETE FROM ZEMP WHERE EMP_ID EQ @WA_VALUE-VALUE .
+
+===========================================
