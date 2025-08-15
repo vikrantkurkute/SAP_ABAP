@@ -9,7 +9,6 @@ It demonstrates my ability to build scalable, performance-optimized, and standar
 🧠 What You’ll Find
 
 ✔ Custom Developments:
-- **Classical Reports**
 - **ALV Reports (ABAP List Viewer)**
 - **Object-Oriented ABAP (OOABAP)**
 - **ODATA**
