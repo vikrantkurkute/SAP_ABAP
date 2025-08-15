@@ -22,7 +22,7 @@ No client-specific or confidential information is included.
 
 ## 📬 Contact
 If you’d like to connect, collaborate, or learn more about any part of this repository:
-### Email: - vikrantkurkute@gmail.com
-### Linkedin - https://www.linkedin.com/in/vikrantkurkute
+Email: - vikrantkurkute@gmail.com
+Linkedin: - https://www.linkedin.com/in/vikrantkurkute
 
 Thank you for visiting my portfolio!
