@@ -1,14 +1,11 @@
 REPORT ZDOWNLOAD_SMARTFORM_TO_LOCAL.
 
-
-
   PARAMETERS:
   p_path         TYPE rlgrap-filename OBLIGATORY.
 
 DATA:
   gv_path_ini    TYPE string,
   gv_path_sel    TYPE string.
-
 
 AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_path.
 
@@ -160,3 +157,4 @@ DATA:
       DATA_TAB     = T_PDF_TAB.
 
     BREAK-POINT..
+
