@@ -1,0 +1,157 @@
+REPORT ZEMAIL_SENT.
+
+DATA : LV_STRING TYPE STRING .
+DATA : LV_DATA_STRING TYPE STRING .
+DATA : LV_XSTRING TYPE XSTRING .
+DATA : IT_BIN TYPE SOLIX_TAB .
+
+START-OF-SELECTION .
+
+  SELECT * FROM EKKO UP TO 100 ROWS INTO TABLE @DATA(IEKKO).
+
+  "STEP 1 "INTERNAL TABLE TO STRING
+*==========================================================================================
+  LOOP AT IEKKO ASSIGNING FIELD-SYMBOL(<WEKKO>).
+
+    CONCATENATE  <WEKKO>-EBELN <WEKKO>-AEDAT INTO LV_STRING SEPARATED BY CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB .
+    CONCATENATE LV_STRING LV_DATA_STRING INTO LV_DATA_STRING SEPARATED BY CL_ABAP_CHAR_UTILITIES=>NEWLINE .
+    CLEAR : LV_STRING .
+
+  ENDLOOP .
+
+  cONCATENATE 'Material Document'
+              'Vendor Code'
+
+
+
+  INTO LV_STRING SEPARATED BY CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB .
+    CONCATENATE LV_STRING LV_DATA_STRING INTO LV_DATA_STRING SEPARATED BY CL_ABAP_CHAR_UTILITIES=>NEWLINE .
+    CLEAR : LV_STRING .
+*===============================================================================================
+  "STEP 2"INTERNAL TABLE TO XSTRING
+*======================================================================================================
+  CALL FUNCTION 'SCMS_STRING_TO_XSTRING'
+    EXPORTING
+      TEXT   = LV_DATA_STRING
+*     MIMETYPE       = ' '
+*     ENCODING       =
+    IMPORTING
+      BUFFER = LV_XSTRING
+    EXCEPTIONS
+      FAILED = 1
+      OTHERS = 2.
+  IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+  ENDIF.
+*  ==========================================================================================
+
+** STEP 4 XSTRING TO BINARY
+*=====================================================================================
+  CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
+    EXPORTING
+      BUFFER     = LV_XSTRING
+*     APPEND_TO_TABLE       = ' '
+*   IMPORTING
+*     OUTPUT_LENGTH         =
+    TABLES
+      BINARY_TAB = IT_BIN.   "TYPE SOLIX_TAB
+
+*  =========================================================
+
+  DATA(LT_BODY) = VALUE SOLI_TAB( ( LINE = 'Please Find The Attached File' ) ) .
+
+*============================================EMAIL DOCUMENT OBJECT CREATED ( LO_DOC)============
+  CALL METHOD CL_DOCUMENT_BCS=>CREATE_DOCUMENT
+    EXPORTING
+      I_TYPE    = 'TXT'    " Code for Document Class
+      I_SUBJECT = 'Material Details'    " Short Description of Contents
+*     I_LENGTH  =     " Size of Document Content
+*     I_LANGUAGE      = SPACE    " Language in Which Document Is Created
+*     I_IMPORTANCE    =     " Document priority
+*     I_SENSITIVITY   =     " Object: Sensitivity (private, functional, ...)
+      I_TEXT    = LT_BODY  " Content (Textual)
+*     I_HEX     =     " Content (Binary)
+*     I_HEADER  =     " Objcont and Objhead as Table Type
+*     I_SENDER  =     " BCS: Represents a BAS Address
+*     IV_VSI_PROFILE  =     " Virus Scan Profile
+    RECEIVING
+      RESULT    = DATA(LO_DOC).   " Wrapper Class for Office Documents      
+
+*      =================================ATTACHED XL FILE ( BINAMRY CONVERTED DATA ) ( ISNTANCE MEHTOD ON LO_DOC )===========================
+
+
+  CALL METHOD LO_DOC->ADD_ATTACHMENT
+    EXPORTING
+      I_ATTACHMENT_TYPE    = 'XLS'    " Document Class for Attachment
+      I_ATTACHMENT_SUBJECT = 'Document'   " Attachment Title
+*     I_ATTACHMENT_SIZE    =     " Size of Document Content
+*     I_ATTACHMENT_LANGUAGE = SPACE    " Language in Which Attachment Is Created
+*     I_ATT_CONTENT_TEXT   =     " Content (Textual)
+      I_ATT_CONTENT_HEX    = IT_BIN   " Content (Binary)
+*     I_ATTACHMENT_HEADER  =     " Attachment Header Data
+*     IV_VSI_PROFILE       =     " Virus Scan Profile
+    .
+
+*    ========================PRESISTENT ( CREATE REQUEST ) ( ATTACHED LO_D0C TO  MAIL REQUEST )====================================
+
+
+  CALL METHOD CL_BCS=>CREATE_PERSISTENT
+    RECEIVING
+      RESULT = DATA(LO_SEND_REQUEST). " Instance of CL_BCS
+
+  CALL METHOD LO_SEND_REQUEST->SET_DOCUMENT
+    EXPORTING
+      I_DOCUMENT = LO_DOC.   " Document to Be Sent
+
+*==========================( CREATE SNEDER & RECIVER ) =======================
+
+  CALL METHOD CL_CAM_ADDRESS_BCS=>CREATE_INTERNET_ADDRESS
+    EXPORTING
+      I_ADDRESS_STRING = 'vikrant.kurkute@kriosispl.in'   " Internet Mail (SMTP) Address
+*     I_ADDRESS_NAME   =     " <<obsolete>>
+*     I_INCL_SAPUSER   =     " Boolean
+    RECEIVING
+      RESULT           = DATA(LO_SENDER).  " Reference to BAS Address
+*  CATCH CX_ADDRESS_BCS.    "
+
+
+  CALL METHOD CL_CAM_ADDRESS_BCS=>CREATE_INTERNET_ADDRESS
+    EXPORTING
+      I_ADDRESS_STRING = 'vishalsap@xrbia.com'   " Internet Mail (SMTP) Address
+*     I_ADDRESS_NAME   =     " <<obsolete>>
+*     I_INCL_SAPUSER   =     " Boolean
+    RECEIVING
+      RESULT           = DATA(LO_RECIPIENT).  " Reference to BAS Address
+*  CATCH CX_ADDRESS_BCS.    "
+
+
+*  ==================( SET SENDER AND RECIVER TO EMAIL )=======================================================
+
+  CALL METHOD LO_SEND_REQUEST->SET_SENDER
+    EXPORTING
+      I_SENDER = LO_SENDER.    " Sender
+*    CATCH CX_SEND_REQ_BCS.    "
+
+  CALL METHOD LO_SEND_REQUEST->ADD_RECIPIENT
+    EXPORTING
+      I_RECIPIENT = LO_RECIPIENT   " Recipient of Message
+*     I_EXPRESS   = ABAP_TRUE   " Send As Express Message
+*     I_COPY      =     " Send Copy
+*     I_BLIND_COPY    =     " Send As Blind Copy
+*     I_NO_FORWARD    =     " No Forwarding
+    .
+*    CATCH CX_SEND_REQ_BCS.    "
+
+
+*  =======================COMIT TRANSACTION ( )================================================================
+TABLES : soodd.
+Ranges : lv_dislist for SOODD-OBJNAM .
+
+  CALL METHOD LO_SEND_REQUEST->SEND
+    EXPORTING
+      I_WITH_ERROR_SCREEN = 'X'   " Transmission Log Book if Errors Occur
+    RECEIVING
+      RESULT              = DATA(LV_RESULT).    " Flag Indicates Whether Document Was Sent Successfully
+*  CATCH CX_SEND_REQ_BCS.    "
+
+ COMMIT WORK .
