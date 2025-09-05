@@ -68,14 +68,6 @@ lo_alv->set_screen_status(
 
 ---
 
-## **📅 Change Log**
-
-| **Date**     | **Author**         | **Description**                    |
-|--------------|--------------------|------------------------------------|
-| 03-12-2024   | Vikrant Kurkute    | Initial version with ALV Factory   |
-
----
-
 ## **🧠 Best Practices**
 
 - **Always wrap ALV logic in `TRY...CATCH` blocks**  
@@ -93,5 +85,3 @@ It showcases best practices in:
 - **Factory method implementation**  
 - **Dynamic UI customization**  
 - **Interactive ALV functionality**
-
-
