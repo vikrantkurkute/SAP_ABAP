@@ -41,9 +41,9 @@ It provides a reusable template for SAP ABAP developers to quickly create intera
 
 ## 🛠️ Technical Details
 
-| Attribute       | Value                  |
-|----------------|------------------------|
-| **Report Name** | `ZZVIK_ALV_FACTORY`    |
+| Attribute         | Value                  |
+|------------------|------------------------|
+| **Report Name**   | `ZZVIK_ALV_FACTORY`    |
 | **Primary Table** | `MARA` (Material Master) |
 
 ---
@@ -59,31 +59,39 @@ lo_alv->set_screen_status(
   set_functions = cl_salv_model_base=>c_functions_all
 ).
 
-## 🖼️ Output Preview
 
-- **Header:** ALV Test for Display Settings  
-- **Layout:** Zebra pattern with optimized columns  
-- **Toolbar:** Export, Sort, Filter, Find enabled  
+## **🖼️ Output Preview**
 
-## 📅 Change Log
+- **Header:** **ALV Test for Display Settings**  
+- **Layout:** **Zebra pattern with optimized columns**  
+- **Toolbar:** **Export, Sort, Filter, Find enabled**  
 
-| Date       | Author           | Description                      |
-|------------|------------------|----------------------------------|
-| 03-12-2024 | Vikrant Kurkute  | Initial version with ALV Factory |
+---
 
-## 🧠 Best Practices
+## **📅 Change Log**
 
-- Always wrap ALV logic in `TRY...CATCH` blocks  
-- Use column optimization for better UX  
-- Define a custom PF-STATUS for additional UI controls  
-- Reuse this template across similar reporting needs  
+| **Date**     | **Author**         | **Description**                    |
+|--------------|--------------------|------------------------------------|
+| 03-12-2024   | Vikrant Kurkute    | Initial version with ALV Factory   |
 
+---
 
-## ✅ Summary
+## **🧠 Best Practices**
+
+- **Always wrap ALV logic in `TRY...CATCH` blocks**  
+- **Use column optimization for better UX**  
+- **Define a custom PF-STATUS for additional UI controls**  
+- **Reuse this template across similar reporting needs**  
+
+---
+
+## **✅ Summary**
 
 `ZZVIK_ALV_FACTORY` is a ready-to-use **ALV report template** for SAP ABAP developers.  
 It showcases best practices in:
 
-- Factory method implementation  
-- Dynamic UI customization  
-- Interactive ALV functionality  
+- **Factory method implementation**  
+- **Dynamic UI customization**  
+- **Interactive ALV functionality**
+
+
