@@ -47,17 +47,14 @@ It provides a reusable template for SAP ABAP developers to quickly create intera
 | **Primary Table** | `MARA` (Material Master) |
 
 ---
+## **✅ Summary**
 
-## 🧩 Implementation Notes
+`ZZVIK_ALV_FACTORY` is a ready-to-use **ALV report template** for SAP ABAP developers.  
+It showcases best practices in:
 
-To add custom buttons or enhance toolbar functionality, use the following:
-
-```abap
-lo_alv->set_screen_status(
-  report        = sy-repid,
-  pfstatus      = 'STANDARD',
-  set_functions = cl_salv_model_base=>c_functions_all
-).
+- **Factory method implementation**  
+- **Dynamic UI customization**  
+- **Interactive ALV functionality**
 
 
 ## **🖼️ Output Preview**
@@ -75,13 +72,18 @@ lo_alv->set_screen_status(
 - **Define a custom PF-STATUS for additional UI controls**  
 - **Reuse this template across similar reporting needs**  
 
----
+--- 
 
-## **✅ Summary**
+## 🧩 Implementation Notes
 
-`ZZVIK_ALV_FACTORY` is a ready-to-use **ALV report template** for SAP ABAP developers.  
-It showcases best practices in:
+To add custom buttons or enhance toolbar functionality, use the following:
 
-- **Factory method implementation**  
-- **Dynamic UI customization**  
-- **Interactive ALV functionality**
+```abap
+lo_alv->set_screen_status(
+  report        = sy-repid,
+  pfstatus      = 'STANDARD',
+  set_functions = cl_salv_model_base=>c_functions_all
+).
+
+
+
